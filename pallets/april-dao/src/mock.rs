@@ -8,6 +8,7 @@ use sp_runtime::{
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+use frame_support::traits::{ConstU16, ConstU64};
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -17,7 +18,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		TemplateModule: pallet_april-dao::{Pallet, Call, Storage, Event<T>},
+		AprilDaoModule: pallet_april_dao::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
