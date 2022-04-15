@@ -40,7 +40,7 @@ use pallet_transaction_payment::CurrencyAdapter;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
-/// Import the template pallet.
+/// Import the april dao pallet.
 pub use pallet_april_dao;
 
 /// An index to a block.
@@ -286,8 +286,7 @@ construct_runtime!(
 		Balances: pallet_balances,
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
-		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_april_dao,
+		AprilDaoModule: pallet_april_dao,
 	}
 );
 
@@ -330,7 +329,7 @@ mod benches {
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_balances, Balances]
 		[pallet_timestamp, Timestamp]
-		[pallet_template, TemplateModule]
+		[pallet_april_dao, AprilDaoModule]
 	);
 }
 
