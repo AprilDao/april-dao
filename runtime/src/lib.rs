@@ -41,7 +41,7 @@ pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
-pub use pallet_april-dao;
+pub use pallet_april_dao;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -267,7 +267,7 @@ impl pallet_sudo::Config for Runtime {
 }
 
 /// Configure the pallet-april-dao in pallets/april-dao.
-impl pallet_april-dao::Config for Runtime {
+impl pallet_april_dao::Config for Runtime {
 	type Event = Event;
 }
 
@@ -287,7 +287,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_april-dao,
+		TemplateModule: pallet_april_dao,
 	}
 );
 

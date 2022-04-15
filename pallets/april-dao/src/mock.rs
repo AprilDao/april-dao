@@ -1,4 +1,4 @@
-use crate as pallet_april-dao;
+use crate as pallet_april_dao;
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
@@ -48,7 +48,7 @@ impl system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl pallet_april-dao::Config for Test {
+impl pallet_april_dao::Config for Test {
 	type Event = Event;
 }
 

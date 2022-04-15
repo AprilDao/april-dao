@@ -3,8 +3,8 @@ use crate::{
 	cli::{Cli, Subcommand},
 	service,
 };
-use node_april-dao_runtime::Block;
-use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
+use node_april_dao_runtime::Block;
+use sc_cli::{ChainSpec, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
 
 impl SubstrateCli for Cli {
@@ -42,7 +42,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-		&node_april-dao_runtime::VERSION
+		&node_april_dao_runtime::VERSION
 	}
 }
 

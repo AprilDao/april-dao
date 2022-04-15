@@ -1,4 +1,4 @@
-use node_april-dao_runtime::{
+use node_april_dao_runtime::{
 	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
 	SystemConfig, WASM_BINARY,
 };
