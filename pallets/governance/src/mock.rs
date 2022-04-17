@@ -1,4 +1,4 @@
-use crate as pallet_collection;
+use crate as pallet_april_dao;
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
@@ -18,7 +18,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		AprilDaoModule: pallet_collection::{Pallet, Call, Storage, Event<T>},
+		AprilDaoModule: pallet_april_dao::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -49,7 +49,7 @@ impl system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl pallet_collection::Config for Test {
+impl pallet_april_dao::Config for Test {
 	type Event = Event;
 }
 

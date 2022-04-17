@@ -44,7 +44,7 @@ Once the project has been built, the following command can be used to explore al
 subcommands:
 
 ```sh
-./target/release/april-dao -h
+./target/release/node-april-dao -h
 ```
 
 ## Run
@@ -58,19 +58,19 @@ node.
 This command will start the single-node development chain with non-persistent state:
 
 ```bash
-./target/release/april-dao --dev
+./target/release/node-april-dao --dev
 ```
 
 Purge the development chain's state:
 
 ```bash
-./target/release/april-dao purge-chain --dev
+./target/release/node-april-dao purge-chain --dev
 ```
 
 Start the development chain with detailed logging:
 
 ```bash
-RUST_BACKTRACE=1 ./target/release/april-dao -ldebug --dev
+RUST_BACKTRACE=1 ./target/release/node-april-dao -ldebug --dev
 ```
 
 > Development chain means that the state of our chain will be in a tmp folder while the nodes are
@@ -93,7 +93,7 @@ is ran. The following commands shows how to use a newly created folder as our db
 $ mkdir my-chain-state
 
 // Use of that folder to store the chain state
-$ ./target/release/april-dao --dev --base-path ./my-chain-state/
+$ ./target/release/node-april-dao --dev --base-path ./my-chain-state/
 
 // Check the folder structure created inside the base path after running the chain
 $ ls ./my-chain-state
@@ -159,7 +159,7 @@ After the node has been [built](#build), refer to the embedded documentation to 
 capabilities and configuration parameters that it exposes:
 
 ```shell
-./target/release/april-dao --help
+./target/release/node-april-dao --help
 ```
 
 ### Runtime
@@ -220,15 +220,15 @@ Then run the following command to start a single node development chain.
 
 This command will firstly compile your code, and then start a local development network. You can
 also replace the default command
-(`cargo build --release && ./target/release/april-dao --dev --ws-external`)
+(`cargo build --release && ./target/release/node-april-dao --dev --ws-external`)
 by appending your own. A few useful ones are as follow.
 
 ```bash
 # Run Substrate node without re-compiling
-./scripts/docker_run.sh ./target/release/april-dao --dev --ws-external
+./scripts/docker_run.sh ./target/release/node-april-dao --dev --ws-external
 
 # Purge the local dev chain
-./scripts/docker_run.sh ./target/release/april-dao purge-chain --dev
+./scripts/docker_run.sh ./target/release/node-april-dao purge-chain --dev
 
 # Check whether the code is compilable
 ./scripts/docker_run.sh cargo check
