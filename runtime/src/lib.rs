@@ -276,6 +276,7 @@ impl pallet_april_dao::Config for Runtime {
 impl pallet_collection::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
+	type CollectionRandomness = RandomnessCollectiveFlip;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

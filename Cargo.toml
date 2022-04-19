@@ -2,6 +2,7 @@
 members = [
     'node',
     'pallets/april-dao',
+    'pallets/governance',
     'runtime',
 ]
 [profile.release]
