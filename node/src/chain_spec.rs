@@ -42,10 +42,22 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 pub fn development_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
-	let pre_funded_account: Vec<(AccountId, Balance)> = vec![(
-		hex!("30a056196515173d8d5adeb538d74d74d4dcffd992347bffcfa8bbee3f285a75").into(),
-		100_000_000_000_000_000,
-	)];
+	let pre_funded_account: Vec<(AccountId, Balance)> = vec![
+		(
+			hex!("30a056196515173d8d5adeb538d74d74d4dcffd992347bffcfa8bbee3f285a75").into(),
+			100_000_000_000_000_000,
+		),
+		(get_account_id_from_seed::<sr25519::Public>("Alice"), 100_000_000_000_000_000),
+		(get_account_id_from_seed::<sr25519::Public>("Bob"), 100_000_000_000_000_000),
+		(get_account_id_from_seed::<sr25519::Public>("Charlie"), 100_000_000_000_000_000),
+		(get_account_id_from_seed::<sr25519::Public>("Dave"), 100_000_000_000_000_000),
+		(get_account_id_from_seed::<sr25519::Public>("Eve"), 100_000_000_000_000_000),
+		(get_account_id_from_seed::<sr25519::Public>("Ferdie"), 100_000_000_000_000_000),
+		(get_account_id_from_seed::<sr25519::Public>("Alice//stash"), 100_000_000_000_000_000),
+		(get_account_id_from_seed::<sr25519::Public>("Bob//stash"), 100_000_000_000_000_000),
+		(get_account_id_from_seed::<sr25519::Public>("Charlie//stash"), 100_000_000_000_000_000),
+		(get_account_id_from_seed::<sr25519::Public>("Alice//stash"), 100_000_000_000_000_000),
+	];
 
 	Ok(ChainSpec::from_genesis(
 		// Name
