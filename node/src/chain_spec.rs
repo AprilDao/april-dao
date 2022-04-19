@@ -53,10 +53,6 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		(get_account_id_from_seed::<sr25519::Public>("Dave"), 100_000_000_000_000_000),
 		(get_account_id_from_seed::<sr25519::Public>("Eve"), 100_000_000_000_000_000),
 		(get_account_id_from_seed::<sr25519::Public>("Ferdie"), 100_000_000_000_000_000),
-		(get_account_id_from_seed::<sr25519::Public>("Alice//stash"), 100_000_000_000_000_000),
-		(get_account_id_from_seed::<sr25519::Public>("Bob//stash"), 100_000_000_000_000_000),
-		(get_account_id_from_seed::<sr25519::Public>("Charlie//stash"), 100_000_000_000_000_000),
-		(get_account_id_from_seed::<sr25519::Public>("Alice//stash"), 100_000_000_000_000_000),
 	];
 
 	Ok(ChainSpec::from_genesis(
