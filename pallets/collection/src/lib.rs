@@ -14,30 +14,23 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-
 #[frame_support::pallet]
 pub mod pallet {
 
+	use frame_support::inherent::Vec;
 	use frame_support::pallet_prelude::*;
 	use frame_support::traits::Currency;
+	use frame_support::{sp_runtime::traits::Hash, traits::Randomness};
 	use frame_system::pallet_prelude::*;
-	use scale_info::{
-		TypeInfo,
-		prelude::format,
-	};
-	use frame_support::inherent::Vec;
-	use frame_support::{
-		sp_runtime::traits::Hash,
-		traits::{ Randomness},
-	};
+	use scale_info::{prelude::format, TypeInfo};
 
 	pub type CollectionId = u64;
 	pub type NFTId = u8;
 	type AccountOf<T> = <T as frame_system::Config>::AccountId;
-    type BalanceOf<T> =
-        <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-    #[cfg(feature = "std")]
-    use frame_support::serde::{Deserialize, Serialize};
+	type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	#[cfg(feature = "std")]
+	use frame_support::serde::{Deserialize, Serialize};
 
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 	#[scale_info(skip_type_params(T))]
@@ -62,10 +55,10 @@ pub mod pallet {
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 	#[codec(mel_bound())]
 	pub struct NFT {
-        pub id: u8,
-        pub name: Vec<u8>,
-        pub image_url: Vec<u8>,
-    }
+		pub id: u8,
+		pub name: Vec<u8>,
+		pub image_url: Vec<u8>,
+	}
 
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -77,19 +70,12 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_collections)]
-	pub type Collections<T: Config> =
-		StorageMap<_, Twox64Concat, T::Hash, CollectionInfo<T>>;
+	pub type Collections<T: Config> = StorageMap<_, Twox64Concat, T::Hash, CollectionInfo<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_nfts)]
 	pub type NFTs<T: Config> =
-		StorageDoubleMap<
-			_,
-			Twox64Concat, T::Hash, 
-			Twox64Concat, NFTId, 
-			NFT,
-			ValueQuery
-		>;
+		StorageDoubleMap<_, Twox64Concat, T::Hash, Twox64Concat, NFTId, NFT, ValueQuery>;
 
 	// Configure the pallet by specifying the parameters and types on which it depends.
 
@@ -101,7 +87,6 @@ pub mod pallet {
 		/// The currency type
 		type Currency: Currency<Self::AccountId>;
 
-
 		type CollectionRandomness: Randomness<Self::Hash, Self::BlockNumber>;
 	}
 
@@ -110,21 +95,22 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	impl<T: Config> MaxEncodedLen for CollectionInfo<T> {
-        fn max_encoded_len() -> usize {
+		fn max_encoded_len() -> usize {
 			let len: usize = 16;
-            len
-        }
-    }
+			len
+		}
+	}
 
 	impl MaxEncodedLen for NFT {
-        fn max_encoded_len() -> usize {
+		fn max_encoded_len() -> usize {
 			let len: usize = 16;
-            len
-        }
-    }
+			len
+		}
+	}
 
 	impl Default for NFT {
-		fn default() -> Self { NFT {
+		fn default() -> Self {
+			NFT {
 				id: 0,
 				name: format!("").as_bytes().to_vec().clone(),
 				image_url: format!("").as_bytes().to_vec().clone(),
@@ -136,7 +122,7 @@ pub mod pallet {
 	// // https://docs.substrate.io/v3/runtime/storage
 	// #[pallet::storage]
 	// #[pallet::getter(fn projects)]
-	// pub type Projects<T: Config> = 
+	// pub type Projects<T: Config> =
 	// 	StorageMap<_, Twox64Concat, T::Hash, Project<T>>;
 
 	// Pallets use events to inform users when important changes are made.
@@ -159,13 +145,19 @@ pub mod pallet {
 		/// Duplidate collection name
 		CollectionExists,
 		/// Collection not exists
-		CollectionNotExists
+		CollectionNotExists,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn register_collection(origin: OriginFor<T>, name: Vec<u8>, description: Vec<u8>, number_of_items: u8, mint_fee: BalanceOf<T>) -> DispatchResult {
+		pub fn register_collection(
+			origin: OriginFor<T>,
+			name: Vec<u8>,
+			description: Vec<u8>,
+			number_of_items: u8,
+			mint_fee: BalanceOf<T>,
+		) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
 			// https://docs.substrate.io/v3/runtime/origins
@@ -186,51 +178,61 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			// Get collection info
-			let mut collection = Self::get_collections(&collection_id).ok_or(<Error<T>>::CollectionNotExists)?;
-			
+			let mut collection =
+				Self::get_collections(&collection_id).ok_or(<Error<T>>::CollectionNotExists)?;
 
 			if collection.number_of_minted < collection.number_of_items {
 				let nft = Self::generate_collection_nft(collection.number_of_minted);
-				
 				// Store data on chain
 				// let mut nfts =  Self::get_nfts.iter_prefix_values(collection_id)
 				let nft_id = nft.id;
 				NFTs::<T>::insert(collection_id, nft_id, nft);
-				log::info!("A NFT is minted with ID: {:?} in collection id: {:?}", nft_id, collection_id);
+				log::info!(
+					"A NFT is minted with ID: {:?} in collection id: {:?}",
+					nft_id,
+					collection_id
+				);
 
 				collection.number_of_minted += 1;
 				<Collections<T>>::insert(&collection_id, collection);
-
 			} else {
-
 			}
 
 			//  A collection is created with ID: 0x1feea69365127b2bed6d285dee4364791fab6e94389ee141dcb635511a31a680
 			//  A collection NFT Index is created: 8
-			// A NFT is minted with ID: 0 in collection id: 0x1feea69365127b2bed6d285dee4364791fab6e94389ee141dcb635511a31a680 
+			// A NFT is minted with ID: 0 in collection id: 0x1feea69365127b2bed6d285dee4364791fab6e94389ee141dcb635511a31a680
 			Ok(())
 		}
-
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn new_collection(owner: &T::AccountId, name: Vec<u8>, description: Vec<u8>, number_of_items: u8, mint_fee: BalanceOf<T>) -> Result<T::Hash, DispatchError> {
+		pub fn get_launchpad_collections() -> u32 {
+			10
+		}
+
+		fn new_collection(
+			owner: &T::AccountId,
+			name: Vec<u8>,
+			description: Vec<u8>,
+			number_of_items: u8,
+			mint_fee: BalanceOf<T>,
+		) -> Result<T::Hash, DispatchError> {
 			let collection_id = T::Hashing::hash_of(&name);
 
 			let collection_info = CollectionInfo::<T> {
 				id: collection_id,
 				owner: owner.clone(),
-				name: name,
-				description: description,
-				number_of_items: number_of_items,
+				name,
+				description,
+				number_of_items,
 				project_status: ProjectStatus::Active,
 				is_frozen: false,
 				number_of_minted: 0,
-				mint_fee: mint_fee,
+				mint_fee,
 			};
-			
-            // Check if the collection id does not already exist in our storage map
-            ensure!(Self::get_collections(&collection_id) == None, <Error<T>>::CollectionExists);
+
+			// Check if the collection id does not already exist in our storage map
+			ensure!(Self::get_collections(&collection_id) == None, <Error<T>>::CollectionExists);
 
 			log::info!("A collection is created with ID: {:?}", collection_id);
 

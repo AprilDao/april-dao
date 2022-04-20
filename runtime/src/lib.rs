@@ -411,6 +411,16 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl pallet_collection_rpc_runtime_api::KittyApi<Block> for Runtime {
+		fn get_launchpad_collections() -> u32 {
+			CollectionModule::get_launchpad_collections()
+		}
+
+		// fn get_kitty_count() -> u64 {
+		// 	CollectionModule::kitty_cnt()
+		// }
+	}
+
 	impl sp_session::SessionKeys<Block> for Runtime {
 		fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
 			opaque::SessionKeys::generate(seed)
