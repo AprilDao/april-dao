@@ -23,14 +23,16 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
+
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ConstU128, ConstU32, ConstU8, KeyOwnerProofSystem, Randomness, StorageInfo},
+	traits::{ConstU128, ConstU32, ConstU8, KeyOwnerProofSystem, Randomness, StorageInfo, ReservableCurrency},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		IdentityFee, Weight,
 	},
+	pallet_prelude::Get,
 	StorageValue,
 };
 pub use pallet_balances::Call as BalancesCall;
@@ -272,12 +274,17 @@ impl pallet_april_dao::Config for Runtime {
 	type Event = Event;
 }
 
-/// Configure the pallet-april-dao in pallets/april-dao.
+parameter_types! {
+	pub const SubmissionDeposit: u128 = 1 * 1_000_000_000;
+}
+/// Configure the pallet-collection in pallets/april-dao.
 impl pallet_collection::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type CollectionRandomness = RandomnessCollectiveFlip;
+	type SubmissionDeposit = SubmissionDeposit;
 }
+
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
