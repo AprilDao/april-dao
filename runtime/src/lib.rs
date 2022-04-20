@@ -40,8 +40,9 @@ use pallet_transaction_payment::CurrencyAdapter;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
-/// Import the template pallet.
+/// Import the april dao pallet.
 pub use pallet_april_dao;
+pub use pallet_collection;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -271,6 +272,13 @@ impl pallet_april_dao::Config for Runtime {
 	type Event = Event;
 }
 
+/// Configure the pallet-april-dao in pallets/april-dao.
+impl pallet_collection::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type CollectionRandomness = RandomnessCollectiveFlip;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -286,8 +294,8 @@ construct_runtime!(
 		Balances: pallet_balances,
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
-		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_april_dao,
+		AprilDaoModule: pallet_april_dao,
+		CollectionModule: pallet_collection,
 	}
 );
 
@@ -330,7 +338,8 @@ mod benches {
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_balances, Balances]
 		[pallet_timestamp, Timestamp]
-		[pallet_template, TemplateModule]
+		[pallet_april_dao, AprilDaoModule]
+		[pallet_collection, CollectionModule]
 	);
 }
 
