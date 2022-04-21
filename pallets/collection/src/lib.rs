@@ -18,12 +18,10 @@ mod benchmarking;
 pub mod pallet {
 
 	use frame_support::inherent::Vec;
-	use frame_support::inherent::Vec;
 	use frame_support::pallet_prelude::*;
 	use frame_support::traits::Currency;
-	use frame_support::{sp_runtime::traits::Hash, traits::Randomness};
 	use frame_support::{
-		sp_runtime::traits::{AccountIdConversion, Hash, Saturating, Zero},
+		sp_runtime::traits::{AccountIdConversion, Zero},
 		traits::{ExistenceRequirement, Randomness, ReservableCurrency, WithdrawReasons},
 		PalletId,
 	};
