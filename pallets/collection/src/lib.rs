@@ -31,7 +31,7 @@ pub mod pallet {
 	use scale_info::{prelude::format, TypeInfo};
 
 	pub type CollectionId = u32;
-	pub type NFTId = u8;
+	pub type NFTId = u16;
 
 	type AccountOf<T> = <T as frame_system::Config>::AccountId;
 	type BalanceOf<T> =
@@ -53,8 +53,8 @@ pub mod pallet {
 		pub owner: AccountOf<T>,
 		pub name: Vec<u8>,
 		pub description: Vec<u8>,
-		pub number_of_items: u8,
-		pub number_of_minted: u8,
+		pub number_of_items: u16,
+		pub number_of_minted: u16,
 		/// The metadata of this metaverse
 		// pub metadata: MetaverseMetadata,
 		/// The currency use in this metaverse
@@ -63,12 +63,14 @@ pub mod pallet {
 		pub is_frozen: bool,
 		pub project_status: ProjectStatus,
 		pub mint_fee: BalanceOf<T>,
+		pub start_date: Option<u32>,
+		pub end_date: Option<u32>,
 	}
 
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 	#[codec(mel_bound())]
 	pub struct NFT {
-		pub id: u8,
+		pub id: u16,
 		pub name: Vec<u8>,
 		pub image_url: Vec<u8>,
 	}
@@ -76,9 +78,8 @@ pub mod pallet {
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 	pub enum ProjectStatus {
-		Active,
-		Oppening,
-		Closed,
+		Draft,
+		Approved,
 	}
 
 	#[pallet::storage]
@@ -201,7 +202,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			name: Vec<u8>,
 			description: Vec<u8>,
-			number_of_items: u8,
+			number_of_items: u16,
 			mint_fee: BalanceOf<T>,
 		) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
@@ -213,6 +214,31 @@ pub mod pallet {
 
 			// Self::deposit_event(Event::CollectionRegistered(collection_id.clone()));
 
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn approve_collection(
+			origin: OriginFor<T>,
+			collection_id: CollectionId,
+			start_date: u32,
+			end_date: u32,
+		) -> DispatchResult {
+			// let who = ensure_root(origin)?;
+			let who = ensure_signed(origin)?;
+
+			// Get collection info
+			let mut collection =
+				Self::get_collections(&collection_id).ok_or(<Error<T>>::CollectionNotExists)?;
+
+			ensure!(who == collection.owner, Error::<T>::NotFundOwner);
+
+			if collection.project_status != ProjectStatus::Approved {
+				collection.project_status = ProjectStatus::Approved;
+				collection.start_date = Some(start_date);
+				collection.end_date = Some(end_date);
+				<Collections<T>>::insert(&collection_id, collection);
+			}
 			Ok(())
 		}
 
@@ -243,15 +269,10 @@ pub mod pallet {
 				collection.number_of_minted += 1;
 				<Collections<T>>::insert(&collection_id, collection);
 
-				log::info!("contribution VALUE  : {:?}", mint_fee);
 				let result = Self::contribute(&who.clone(), 0, mint_fee);
 				log::info!("contribution result : {:?}", result);
 			} else {
 			}
-
-			//  A collection is created with ID: 0x1feea69365127b2bed6d285dee4364791fab6e94389ee141dcb635511a31a680
-			//  A collection NFT Index is created: 8
-			// A NFT is minted with ID: 0 in collection id: 0x1feea69365127b2bed6d285dee4364791fab6e94389ee141dcb635511a31a680
 			Ok(())
 		}
 
@@ -278,7 +299,7 @@ pub mod pallet {
 			owner: &T::AccountId,
 			name: Vec<u8>,
 			description: Vec<u8>,
-			number_of_items: u8,
+			number_of_items: u16,
 			mint_fee: BalanceOf<T>,
 		) -> Result<CollectionId, DispatchError> {
 			let collection_id = <FundCount<T>>::get();
@@ -291,10 +312,12 @@ pub mod pallet {
 				name,
 				description,
 				number_of_items,
-				project_status: ProjectStatus::Active,
+				project_status: ProjectStatus::Draft,
 				is_frozen: false,
 				number_of_minted: 0,
 				mint_fee,
+				start_date: None,
+				end_date: None,
 			};
 
 			// Check if the collection id does not already exist in our storage map
@@ -311,7 +334,7 @@ pub mod pallet {
 			Ok(collection_id)
 		}
 
-		fn generate_collection_nft(total_nft: u8) -> NFT {
+		fn generate_collection_nft(total_nft: u16) -> NFT {
 			let index = Self::gen_nft_index();
 			log::info!("A collection NFT Index is created: {:?}", index);
 
