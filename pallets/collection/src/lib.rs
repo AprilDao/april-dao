@@ -20,15 +20,14 @@ pub mod pallet {
 	use frame_support::inherent::Vec;
 	use frame_support::pallet_prelude::*;
 	use frame_support::traits::Currency;
-	use frame_support::{sp_runtime::traits::Hash, traits::Randomness};
 	use frame_system::pallet_prelude::*;
 	use scale_info::{
 		TypeInfo,
 		prelude::format,
 	};
-	use frame_support::inherent::Vec;
+
 	use frame_support::{
-		sp_runtime::{traits::{AccountIdConversion, Saturating, Zero, Hash}},
+		sp_runtime::{traits::{AccountIdConversion, Zero}},
 		traits::{ Randomness, ReservableCurrency, WithdrawReasons, ExistenceRequirement },
 		PalletId
 	};
@@ -234,6 +233,8 @@ pub mod pallet {
 		// Fund index is not existed
 		InvalidFundIndex,
 
+		// There is an unknown error when dispense a pot
+		DispenseError,
 		// Require owner to be execute some pallet calls
 		NotFundOwner,
 
@@ -284,6 +285,9 @@ pub mod pallet {
 
 			// Get collection info
 			let mut collection = Self::get_collections(&collection_id).ok_or(<Error<T>>::CollectionNotExists)?;
+
+			// Ensure collection is approved
+			ensure!(collection.project_status == ProjectStatus::Approved, Error::<T>::NotFundOwner);
 
 			if collection.number_of_minted < collection.number_of_items {
 				let mint_fee = collection.mint_fee;
@@ -390,11 +394,6 @@ pub mod pallet {
 				name: format!("Item #{}", total_nft).as_bytes().to_vec().clone(),
 				image_url: images[index as usize].as_bytes().to_vec().clone(),
 			}
-		}
-
-		// Note the warning above about saturated conversions
-		fn u8_to_balance_saturated(input: u8) -> BalanceOf<T> {
-			input.into()
 		}
 
 		fn gen_nft_index() -> u8 {
