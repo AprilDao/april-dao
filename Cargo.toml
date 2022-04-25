@@ -2,8 +2,7 @@
 members = [
     'node',
     'pallets/april-dao',
-    'pallets/governance',
-    'runtime',
+    'runtime'
 ]
 [profile.release]
 panic = "unwind"
