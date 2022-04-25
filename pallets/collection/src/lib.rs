@@ -42,7 +42,6 @@ pub mod pallet {
 	#[cfg(feature = "std")]
 	use frame_support::serde::{Deserialize, Serialize};
 
-
 	// Funding
 	pub type FundIndex = u32;
 	const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
@@ -103,6 +102,26 @@ pub mod pallet {
 			ValueQuery
 		>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn nft_owned)]
+	/// Keeps track of what accounts own what NFT.
+	pub(super) type NFTOwned<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		BoundedVec<NFTId, T::MaxNFTOwned>,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+    #[pallet::getter(fn nfts_map)]
+    pub(super) type NFTMap<T: Config> = StorageMap<
+        _,
+        Twox64Concat,
+        NFTId,
+        NFT,
+    >;
+
 	#[derive(Encode, Decode, Default, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
 	#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 	pub struct FundInfo<AccountId, Balance, BlockNumber> {
@@ -148,6 +167,9 @@ pub mod pallet {
 		
 		// The amount to be held on deposit by the owner of a crowdfund.
 		type SubmissionDeposit: Get<BalanceOf<Self>>;
+
+        #[pallet::constant]
+        type MaxNFTOwned: Get<u32>;
 	}
 
 	#[pallet::pallet]
@@ -193,6 +215,9 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		CollectionRegistered(CollectionId),
+		Created(FundIndex, <T as frame_system::Config>::BlockNumber),
+		Contributed(<T as frame_system::Config>::AccountId, FundIndex, BalanceOf<T>, <T as frame_system::Config>::BlockNumber),
+		Dispensed(FundIndex, <T as frame_system::Config>::BlockNumber, <T as frame_system::Config>::AccountId),
 	}
 
 	// Errors inform users that something went wrong.
@@ -206,12 +231,13 @@ pub mod pallet {
 		CollectionExists,
 		/// Collection not exists
 		CollectionNotExists,
-
 		// Fund index is not existed
 		InvalidFundIndex,
 
 		// Require owner to be execute some pallet calls
-		NotFundOwner
+		NotFundOwner,
+
+		ExceedMaxNFTOwned,
 	}
 
 	#[pallet::call]
@@ -223,9 +249,8 @@ pub mod pallet {
 			// https://docs.substrate.io/v3/runtime/origins
 			let who = ensure_signed(origin)?;
 
-			_ = Self::new_collection(&who, name, description, number_of_items, mint_fee);
-
-			// Self::deposit_event(Event::CollectionRegistered(collection_id.clone()));
+			let collection_id = Self::new_collection(&who, name, description, number_of_items, mint_fee).unwrap();
+			Self::deposit_event(Event::CollectionRegistered(collection_id.clone()));
 
 			Ok(())
 		}
@@ -266,17 +291,19 @@ pub mod pallet {
 				// Store data on chain
 				// let mut nfts =  Self::get_nfts.iter_prefix_values(collection_id)
 				let nft_id = nft.id;
-				NFTs::<T>::insert(collection_id, nft_id, nft);
-				log::info!(
-					"A NFT is minted with ID: {:?} in collection id: {:?}",
-					nft_id,
-					collection_id
-				);
+				NFTs::<T>::insert(collection_id, nft_id, &nft);
+				log::info!("A NFT is minted with ID: {:?} in collection id: {:?}", nft_id, collection_id);
 
 				collection.number_of_minted += 1;
 				<Collections<T>>::insert(&collection_id, collection);
 
-				let result = Self::contribute(&who.clone(), 0, mint_fee);
+				// Performs this operation first because as it may fail
+				<NFTOwned<T>>::try_mutate(&who, |nft_vec| {
+					nft_vec.try_push(nft_id)
+				}).map_err(|_| <Error<T>>::ExceedMaxNFTOwned)?;
+				<NFTMap<T>>::insert(nft_id, &nft);
+
+				let _ = Self::contribute(&who.clone(), 0, mint_fee);
 
 			} else {
 			}
@@ -286,12 +313,14 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn dispense_fund(origin: OriginFor<T>, index: FundIndex) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-
-			let mut fund = Self::funds(index).ok_or(Error::<T>::InvalidFundIndex)?;
+			let now = <frame_system::Pallet<T>>::block_number();
+			let fund = Self::funds(index).ok_or(Error::<T>::InvalidFundIndex)?;
 
 			ensure!(who == fund.beneficiary, Error::<T>::NotFundOwner);
 
 			Self::dispense(index);
+
+			Self::deposit_event(Event::Dispensed(index, now, who));
 
 			Ok(().into())
 		}
@@ -414,19 +443,17 @@ pub mod pallet {
 			let mut fund = Self::funds(index).ok_or(Error::<T>::InvalidFundIndex)?;
 			let fund_account_id = Self::fund_account_id(index);
 
-			log::info!("DEBUG 1");
+			let now = <frame_system::Pallet<T>>::block_number();
 			// Add contribution to the fund
-			let result = T::Currency::transfer(
+			let _ = T::Currency::transfer(
 				&contributor,
 				&fund_account_id,
 				value,
 				ExistenceRequirement::AllowDeath
 			)?;
 
-			
-			log::info!("Transfer result: {:?}", result);
 			fund.raised += value;
-			log::info!("A fund spot is contributed: {:?}", value);
+			Self::deposit_event(Event::Contributed(contributor.clone(), index, value, now));
 
 			// Check account id total balance
 			let current_funding = T::Currency::total_balance(&fund_account_id);
@@ -445,7 +472,11 @@ pub mod pallet {
 				ExistenceRequirement::AllowDeath,
 			)?);
 			log::info!("Dispense result: {:?}", result);
+
+			// Remove the fund info from storage
+			<Funds<T>>::remove(index);
 			Ok(().into())
 		}
+
 	}
 }

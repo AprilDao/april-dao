@@ -276,6 +276,8 @@ impl pallet_april_dao::Config for Runtime {
 
 parameter_types! {
 	pub const SubmissionDeposit: u128 = 1 * 1_000_000_000;
+	// One can own at most 9,999 Kitties
+	pub const MaxNFTOwned: u32 = 100;
 }
 /// Configure the pallet-collection in pallets/april-dao.
 impl pallet_collection::Config for Runtime {
@@ -283,6 +285,7 @@ impl pallet_collection::Config for Runtime {
 	type Currency = Balances;
 	type CollectionRandomness = RandomnessCollectiveFlip;
 	type SubmissionDeposit = SubmissionDeposit;
+	type MaxNFTOwned = MaxNFTOwned;
 }
 
 
