@@ -91,6 +91,11 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, CollectionId, Twox64Concat, NFTId, NFT, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn get_collection_owner_nft)]
+	pub type CollectionOwnerNFT<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, CollectionId, Twox64Concat, T::AccountId, BoundedVec<NFTId, T::MaxNFTOwned>, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn owner)]
 	/// Keeps track of what accounts own what NFT.
 	pub(super) type NFTOwned<T: Config> =
@@ -235,7 +240,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
-			// https://docs.substrate.io/v3/runtime/origins
+			// https://docs.substrate.io/v3/runtime/originsowner
 			let who = ensure_signed(origin)?;
 
 			let collection_id =
@@ -301,9 +306,11 @@ pub mod pallet {
 				collection.number_of_minted += 1;
 				<Collections<T>>::insert(&collection_id, collection);
 
-				// Performs this operation first because as it may fail
 				<NFTOwned<T>>::insert(nft_id, &who);
 				<NFTMap<T>>::insert(nft_id, &nft);
+				<CollectionOwnerNFT<T>>::try_mutate(collection_id, &who, |nft_vec| {
+					nft_vec.try_push(nft_id)
+				}).map_err(|_| <Error<T>>::ExceedMaxNFTOwned)?;
 
 				let _ = Self::contribute(&who.clone(), 0, mint_fee);
 			} else {
