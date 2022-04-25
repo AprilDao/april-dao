@@ -356,6 +356,7 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		AprilDaoModule: pallet_april_dao,
 		CollectionModule: pallet_collection,
+		VotingModule: pallet_voting,
 		Assets: pallet_assets,
 	}
 );
