@@ -47,6 +47,46 @@ pub fn development_config() -> Result<ChainSpec, String> {
 			hex!("30a056196515173d8d5adeb538d74d74d4dcffd992347bffcfa8bbee3f285a75").into(),
 			100_000_000_000_000_000,
 		),
+		(
+			hex!("8434b2f2d8194d44455d9e37869cf515a38aaed473f01c8bfccb545ed926fa0c").into(),
+			100_000_000_000_000_000,
+		),
+		(
+			hex!("b2c5459a18340237a8215c8314c9ae0c10a271a8b01fc561310bcfebb5beb75d").into(),
+			100_000_000_000_000_000,
+		),
+		(
+			hex!("a40ea9e24270a9bd77d9124435b335da380dda55cfc7343ec850318beaefb965").into(),
+			100_000_000_000_000_000,
+		),
+		(
+			hex!("8629035adee2e7f4d01009fc7239ab86a069508d829d833947fb3d26d6059645").into(),
+			100_000_000_000_000_000,
+		),
+		(
+			hex!("aa1cd0c52630c22b7a3d49e3627c0430c5c1af134973e35e5a36d594b36ef406").into(),
+			100_000_000_000_000_000,
+		),
+		(
+			hex!("18083daa4eb9720c467c944767c8e2d600a977a40306a45f449ffa24b9fc3164").into(),
+			100_000_000_000_000_000,
+		),
+		(
+			hex!("e2ee03a533df59dd4333f70c809b8952634b1171b4325ecdd0da9c1df6e9482a").into(),
+			100_000_000_000_000_000,
+		),
+		(
+			hex!("16a1b71a9dd4613ad4e79e526e508290ffbfcf275f14f6e8e69635d72cb2ed78").into(),
+			100_000_000_000_000_000,
+		),
+		(
+			hex!("04544defb7c9825b7795fd3e825199b8b3b4edaec3f0337a416c8838aad46906").into(),
+			100_000_000_000_000_000,
+		),
+		(
+			hex!("fe0eb36e00c8dce69d8d274646b5e9114931d944f2c6c6f3d0590746a6760943").into(),
+			100_000_000_000_000_000,
+		),
 		(get_account_id_from_seed::<sr25519::Public>("Alice"), 100_000_000_000_000_000),
 		(get_account_id_from_seed::<sr25519::Public>("Bob"), 100_000_000_000_000_000),
 		(get_account_id_from_seed::<sr25519::Public>("Charlie"), 100_000_000_000_000_000),
