@@ -21,15 +21,12 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_support::traits::Currency;
 	use frame_system::pallet_prelude::*;
-	use scale_info::{
-		TypeInfo,
-		prelude::format,
-	};
+	use scale_info::{prelude::format, TypeInfo};
 
 	use frame_support::{
-		sp_runtime::{traits::{AccountIdConversion, Zero}},
-		traits::{ Randomness, ReservableCurrency, WithdrawReasons, ExistenceRequirement },
-		PalletId
+		sp_runtime::traits::{AccountIdConversion, Zero},
+		traits::{ExistenceRequirement, Randomness, ReservableCurrency, WithdrawReasons},
+		PalletId,
 	};
 
 	pub type CollectionId = u32;
@@ -46,7 +43,6 @@ pub mod pallet {
 	const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
 	type FundInfoOf<T> =
 		FundInfo<AccountOf<T>, BalanceOf<T>, <T as frame_system::Config>::BlockNumber>;
-
 
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 	#[scale_info(skip_type_params(T))]
@@ -73,10 +69,10 @@ pub mod pallet {
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 	#[codec(mel_bound())]
 	pub struct NFT {
-        pub id: u16,
-        pub name: Vec<u8>,
-        pub image_url: Vec<u8>,
-    }
+		pub id: u16,
+		pub name: Vec<u8>,
+		pub image_url: Vec<u8>,
+	}
 
 	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -87,39 +83,22 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_collections)]
-	pub type Collections<T: Config> =
-		StorageMap<_, Twox64Concat, CollectionId, CollectionInfo<T>>;
+	pub type Collections<T: Config> = StorageMap<_, Twox64Concat, CollectionId, CollectionInfo<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_nfts)]
 	pub type NFTs<T: Config> =
-		StorageDoubleMap<
-			_,
-			Twox64Concat, CollectionId, 
-			Twox64Concat, NFTId, 
-			NFT,
-			ValueQuery
-		>;
+		StorageDoubleMap<_, Twox64Concat, CollectionId, Twox64Concat, NFTId, NFT, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn nft_owned)]
+	#[pallet::getter(fn owner)]
 	/// Keeps track of what accounts own what NFT.
-	pub(super) type NFTOwned<T: Config> = StorageMap<
-		_,
-		Twox64Concat,
-		NFTId,
-		T::AccountId,
-		OptionQuery,
-	>;
+	pub(super) type NFTOwned<T: Config> =
+		StorageMap<_, Twox64Concat, NFTId, T::AccountId, OptionQuery>;
 
 	#[pallet::storage]
-    #[pallet::getter(fn nfts_map)]
-    pub(super) type NFTMap<T: Config> = StorageMap<
-        _,
-        Twox64Concat,
-        NFTId,
-        NFT,
-    >;
+	#[pallet::getter(fn nfts_map)]
+	pub(super) type NFTMap<T: Config> = StorageMap<_, Twox64Concat, NFTId, NFT>;
 
 	#[derive(Encode, Decode, Default, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
 	#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
@@ -134,17 +113,11 @@ pub mod pallet {
 		end: BlockNumber,
 	}
 
-
 	#[pallet::storage]
 	#[pallet::getter(fn funds)]
 	/// Info on all of the funds.
-	pub(super) type Funds<T: Config> = StorageMap
-	<	_, 
-		Blake2_128Concat, 
-		FundIndex, 
-		FundInfoOf<T>,
-		OptionQuery,
-	>;
+	pub(super) type Funds<T: Config> =
+		StorageMap<_, Blake2_128Concat, FundIndex, FundInfoOf<T>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn fund_count)]
@@ -163,12 +136,12 @@ pub mod pallet {
 		type Currency: ReservableCurrency<Self::AccountId>;
 		// type ReservableCurrency: ReservableCurrency<Self::AccountId>;
 		type CollectionRandomness: Randomness<Self::Hash, Self::BlockNumber>;
-		
+
 		// The amount to be held on deposit by the owner of a crowdfund.
 		type SubmissionDeposit: Get<BalanceOf<Self>>;
 
-        #[pallet::constant]
-        type MaxNFTOwned: Get<u32>;
+		#[pallet::constant]
+		type MaxNFTOwned: Get<u32>;
 	}
 
 	#[pallet::pallet]
@@ -215,8 +188,17 @@ pub mod pallet {
 		/// parameters. [something, who]
 		CollectionRegistered(CollectionId),
 		Created(FundIndex, <T as frame_system::Config>::BlockNumber),
-		Contributed(<T as frame_system::Config>::AccountId, FundIndex, BalanceOf<T>, <T as frame_system::Config>::BlockNumber),
-		Dispensed(FundIndex, <T as frame_system::Config>::BlockNumber, <T as frame_system::Config>::AccountId),
+		Contributed(
+			<T as frame_system::Config>::AccountId,
+			FundIndex,
+			BalanceOf<T>,
+			<T as frame_system::Config>::BlockNumber,
+		),
+		Dispensed(
+			FundIndex,
+			<T as frame_system::Config>::BlockNumber,
+			<T as frame_system::Config>::AccountId,
+		),
 	}
 
 	// Errors inform users that something went wrong.
@@ -244,25 +226,38 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn register_collection(origin: OriginFor<T>, name: Vec<u8>, description: Vec<u8>, number_of_items: u16, mint_fee: BalanceOf<T>) -> DispatchResult {
+		pub fn register_collection(
+			origin: OriginFor<T>,
+			name: Vec<u8>,
+			description: Vec<u8>,
+			number_of_items: u16,
+			mint_fee: BalanceOf<T>,
+		) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
 			// https://docs.substrate.io/v3/runtime/origins
 			let who = ensure_signed(origin)?;
 
-			let collection_id = Self::new_collection(&who, name, description, number_of_items, mint_fee).unwrap();
+			let collection_id =
+				Self::new_collection(&who, name, description, number_of_items, mint_fee).unwrap();
 			Self::deposit_event(Event::CollectionRegistered(collection_id.clone()));
 
 			Ok(())
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn approve_collection(origin: OriginFor<T>, collection_id: CollectionId, start_date: u32, end_date: u32)  -> DispatchResult {
+		pub fn approve_collection(
+			origin: OriginFor<T>,
+			collection_id: CollectionId,
+			start_date: u32,
+			end_date: u32,
+		) -> DispatchResult {
 			// let who = ensure_root(origin)?;
 			let who = ensure_signed(origin)?;
 
 			// Get collection info
-			let mut collection = Self::get_collections(&collection_id).ok_or(<Error<T>>::CollectionNotExists)?;
+			let mut collection =
+				Self::get_collections(&collection_id).ok_or(<Error<T>>::CollectionNotExists)?;
 
 			ensure!(who == collection.owner, Error::<T>::NotFundOwner);
 
@@ -275,16 +270,17 @@ pub mod pallet {
 			Ok(())
 		}
 
- 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn mint(origin: OriginFor<T>, collection_id: CollectionId) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
 			// https://docs.substrate.io/v3/runtime/origins
-			
+
 			let who = ensure_signed(origin)?;
 
 			// Get collection info
-			let mut collection = Self::get_collections(&collection_id).ok_or(<Error<T>>::CollectionNotExists)?;
+			let mut collection =
+				Self::get_collections(&collection_id).ok_or(<Error<T>>::CollectionNotExists)?;
 
 			// Ensure collection is approved
 			ensure!(collection.project_status == ProjectStatus::Approved, Error::<T>::NotFundOwner);
@@ -296,7 +292,11 @@ pub mod pallet {
 				// let mut nfts =  Self::get_nfts.iter_prefix_values(collection_id)
 				let nft_id = nft.id;
 				NFTs::<T>::insert(collection_id, nft_id, &nft);
-				log::info!("A NFT is minted with ID: {:?} in collection id: {:?}", nft_id, collection_id);
+				log::info!(
+					"A NFT is minted with ID: {:?} in collection id: {:?}",
+					nft_id,
+					collection_id
+				);
 
 				collection.number_of_minted += 1;
 				<Collections<T>>::insert(&collection_id, collection);
@@ -306,7 +306,6 @@ pub mod pallet {
 				<NFTMap<T>>::insert(nft_id, &nft);
 
 				let _ = Self::contribute(&who.clone(), 0, mint_fee);
-
 			} else {
 			}
 			Ok(())
@@ -326,16 +325,20 @@ pub mod pallet {
 
 			Ok(().into())
 		}
-
 	}
-
 
 	impl<T: Config> Pallet<T> {
 		pub fn get_launchpad_collections() -> u32 {
 			10
 		}
 
-		fn new_collection(owner: &T::AccountId, name: Vec<u8>, description: Vec<u8>, number_of_items: u16, mint_fee: BalanceOf<T>) -> Result<CollectionId, DispatchError> {
+		fn new_collection(
+			owner: &T::AccountId,
+			name: Vec<u8>,
+			description: Vec<u8>,
+			number_of_items: u16,
+			mint_fee: BalanceOf<T>,
+		) -> Result<CollectionId, DispatchError> {
 			let collection_id = <FundCount<T>>::get();
 			// not protected against overflow, see safemath section
 			<FundCount<T>>::put(collection_id + 1);
@@ -343,13 +346,13 @@ pub mod pallet {
 			let collection_info = CollectionInfo::<T> {
 				id: collection_id,
 				owner: owner.clone(),
-				name: name,
-				description: description,
-				number_of_items: number_of_items,
+				name,
+				description,
+				number_of_items,
 				project_status: ProjectStatus::Draft,
 				is_frozen: false,
 				number_of_minted: 0,
-				mint_fee: mint_fee,
+				mint_fee,
 				start_date: None,
 				end_date: None,
 			};
@@ -365,7 +368,7 @@ pub mod pallet {
 			// Create Fund
 			let current_block_number = <frame_system::Pallet<T>>::block_number();
 			Self::create_fund(&owner, collection_id, current_block_number);
-			
+
 			Ok(collection_id)
 		}
 
@@ -406,7 +409,11 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		// CrowdFund
-		pub fn create_fund(owner: &T::AccountId, fund_index: FundIndex, end: T::BlockNumber) -> DispatchResultWithPostInfo {
+		pub fn create_fund(
+			owner: &T::AccountId,
+			fund_index: FundIndex,
+			end: T::BlockNumber,
+		) -> DispatchResultWithPostInfo {
 			let deposit = T::SubmissionDeposit::get();
 			let imb = T::Currency::withdraw(
 				&owner,
@@ -420,14 +427,16 @@ pub mod pallet {
 			let fund_account_id = Self::fund_account_id(fund_index);
 			let result = T::Currency::resolve_creating(&fund_account_id, imb);
 
-			log::info!("Creating funding pot result: {:?} with account id: {:?}", result, fund_account_id);
+			log::info!(
+				"Creating funding pot result: {:?} with account id: {:?}",
+				result,
+				fund_account_id
+			);
 
-			<Funds<T>>::insert(fund_index, FundInfo {
-				beneficiary: owner.clone(),
-				deposit: deposit,
-				raised: Zero::zero(),
-				end,
-			});
+			<Funds<T>>::insert(
+				fund_index,
+				FundInfo { beneficiary: owner.clone(), deposit, raised: Zero::zero(), end },
+			);
 			log::info!("A fund spot is created: {:?}", fund_index);
 			Ok(().into())
 		}
@@ -435,7 +444,7 @@ pub mod pallet {
 		pub fn contribute(
 			contributor: &T::AccountId,
 			index: FundIndex,
-			value: BalanceOf<T>
+			value: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let mut fund = Self::funds(index).ok_or(Error::<T>::InvalidFundIndex)?;
 			let fund_account_id = Self::fund_account_id(index);
@@ -446,7 +455,7 @@ pub mod pallet {
 				&contributor,
 				&fund_account_id,
 				value,
-				ExistenceRequirement::AllowDeath
+				ExistenceRequirement::AllowDeath,
 			)?;
 
 			fund.raised += value;
@@ -462,18 +471,37 @@ pub mod pallet {
 		pub fn dispense(index: FundIndex) -> DispatchResultWithPostInfo {
 			let fund = Self::funds(index).ok_or(Error::<T>::InvalidFundIndex)?;
 			let account = Self::fund_account_id(index);
-			let result = T::Currency::resolve_creating(&fund.beneficiary, T::Currency::withdraw(
-				&account,
-				fund.raised,
-				WithdrawReasons::TRANSFER,
-				ExistenceRequirement::AllowDeath,
-			)?);
+			let result = T::Currency::resolve_creating(
+				&fund.beneficiary,
+				T::Currency::withdraw(
+					&account,
+					fund.raised,
+					WithdrawReasons::TRANSFER,
+					ExistenceRequirement::AllowDeath,
+				)?,
+			);
 			log::info!("Dispense result: {:?}", result);
 
 			// Remove the fund info from storage
 			<Funds<T>>::remove(index);
 			Ok(().into())
 		}
+	}
 
+	impl<T: Config> frame_support::traits::tokens::nonfungibles::Inspect<T::AccountId> for Pallet<T> {
+		type InstanceId = NFTId;
+		type ClassId = CollectionId;
+		/// Returns the owner of asset `instance` of `class`, or `None` if the asset doesn't exist (or
+		/// somehow has no owner).
+		fn owner(_class: &Self::ClassId, instance: &Self::InstanceId) -> Option<T::AccountId> {
+			<NFTOwned<T>>::get(&instance)
+		}
+
+		/// Returns the owner of the asset `class`, if there is one. For many NFTs this may not make
+		/// any sense, so users of this API should not be surprised to find an asset class results in
+		/// `None` here.
+		fn class_owner(_class: &Self::ClassId) -> Option<T::AccountId> {
+			None
+		}
 	}
 }

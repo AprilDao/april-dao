@@ -23,16 +23,19 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
-	construct_runtime, parameter_types,
-	traits::{ConstU128, ConstU32, ConstU8, KeyOwnerProofSystem, Randomness, StorageInfo, ReservableCurrency},
+	construct_runtime,
+	pallet_prelude::Get,
+	parameter_types,
+	traits::{
+		ConstU128, ConstU32, ConstU8, KeyOwnerProofSystem, Randomness, ReservableCurrency,
+		StorageInfo,
+	},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		IdentityFee, Weight,
 	},
-	pallet_prelude::Get,
 	StorageValue,
 };
 pub use pallet_balances::Call as BalancesCall;
@@ -288,6 +291,53 @@ impl pallet_collection::Config for Runtime {
 	type MaxNFTOwned = MaxNFTOwned;
 }
 
+parameter_types! {
+	pub const AssetDeposit: Balance = 1_000_000_000;
+	pub const AssetAccountDeposit: Balance = 1_000_000_000;
+	pub const MetadataDepositBase: Balance = 5_000_000_000_000_000_00;
+	pub const MetadataDepositPerByte: Balance = 1_000_000_000_000_000_0;
+	pub const ApprovalDeposit: Balance = 1_000_000_000_000;
+	pub const StringLimit: u32 = 128;
+}
+
+impl pallet_assets::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type AssetId = u128;
+	type WeightInfo = ();
+	type Currency = Balances;
+	type ForceOrigin = frame_system::EnsureSigned<AccountId>;
+	type Freezer = ();
+	type MetadataDepositBase = MetadataDepositBase;
+	type MetadataDepositPerByte = MetadataDepositPerByte;
+	type ApprovalDeposit = ApprovalDeposit;
+	type StringLimit = StringLimit;
+	type AssetDeposit = AssetDeposit;
+	type AssetAccountDeposit = AssetAccountDeposit;
+	type Extra = ();
+}
+
+parameter_types! {
+	pub const MaxProposal: u32 = 999999;
+	pub const MaxVoter: u32 = 999999;
+	pub const MaxStringLength: u32 = 256;
+}
+
+impl pallet_voting::Config for Runtime {
+	type Event = Event;
+	type NFT = CollectionModule;
+	type Asset = Assets;
+	type AssetId = u128;
+	type NFTClass = pallet_collection::pallet::CollectionId;
+	type NFTInstance = pallet_collection::pallet::NFTId;
+	type MaxProposal = MaxProposal;
+	type MaxVoter = MaxVoter;
+	type MaxStringLength = MaxStringLength;
+	type ProposalId = u64;
+	type Balance = Balance;
+	type Moment = u64;
+	type Timestamp = Timestamp;
+}
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -306,6 +356,8 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		AprilDaoModule: pallet_april_dao,
 		CollectionModule: pallet_collection,
+		VotingModule: pallet_voting,
+		Assets: pallet_assets,
 	}
 );
 

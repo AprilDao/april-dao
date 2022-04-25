@@ -202,6 +202,7 @@ fn testnet_genesis(
 			key: Some(root_key),
 		},
 		transaction_payment: Default::default(),
+		assets: Default::default(),
 	}
 }
 
@@ -231,5 +232,6 @@ fn dev_genesis(
 			key: Some(root_key),
 		},
 		transaction_payment: Default::default(),
+		assets: Default::default(),
 	}
 }
