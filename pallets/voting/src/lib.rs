@@ -10,7 +10,7 @@ pub mod pallet {
 	use frame_support::dispatch::{fmt::Debug, HasCompact};
 	use frame_support::pallet_prelude::*;
 	use frame_support::sp_runtime::traits::Scale;
-	use frame_support::traits::tokens::fungible::Transfer;
+	use frame_support::traits::tokens::fungibles::Transfer;
 	use frame_support::traits::tokens::nonfungibles::Inspect;
 	use frame_support::traits::Time;
 	use frame_system::pallet_prelude::*;
