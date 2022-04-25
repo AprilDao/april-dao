@@ -107,9 +107,9 @@ pub mod pallet {
 	pub(super) type NFTOwned<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
+		NFTId,
 		T::AccountId,
-		BoundedVec<NFTId, T::MaxNFTOwned>,
-		ValueQuery,
+		OptionQuery,
 	>;
 
 	#[pallet::storage]
@@ -302,9 +302,7 @@ pub mod pallet {
 				<Collections<T>>::insert(&collection_id, collection);
 
 				// Performs this operation first because as it may fail
-				<NFTOwned<T>>::try_mutate(&who, |nft_vec| {
-					nft_vec.try_push(nft_id)
-				}).map_err(|_| <Error<T>>::ExceedMaxNFTOwned)?;
+				<NFTOwned<T>>::insert(nft_id, &who);
 				<NFTMap<T>>::insert(nft_id, &nft);
 
 				let _ = Self::contribute(&who.clone(), 0, mint_fee);
