@@ -82,6 +82,15 @@ pub mod pallet {
 
 		// pallet-collection loose coupling
 		type FundInfoImpl: FundInfoInterface<Self>;
+
+		// type FundIndex: Member
+		// 	+ Parameter
+		// 	+ Default
+		// 	+ Copy
+		// 	+ HasCompact
+		// 	+ MaybeSerializeDeserialize
+		// 	+ MaxEncodedLen
+		// 	+ TypeInfo;
 	}
 
 	// Pallets use events to inform users when important changes are made.
@@ -234,7 +243,7 @@ pub mod pallet {
 
 		#[pallet::weight(50_000_000)]
 		pub fn execute(origin: OriginFor<T>, proposal_id: T::ProposalId) -> DispatchResult {
-			let _ = T::FundInfoImpl::dispense(origin, 0);
+			let _ = T::FundInfoImpl::dispense(origin, proposal_id.into());
 			Ok(())
 		}
 

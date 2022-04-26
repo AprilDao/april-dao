@@ -20,9 +20,10 @@ pub mod pallet {
 	use frame_support::inherent::Vec;
 	use frame_support::pallet_prelude::*;
 	use frame_support::traits::Currency;
+	use frame_support::dispatch::{fmt::Debug};
 	use frame_system::pallet_prelude::*;
 	use scale_info::{prelude::format, TypeInfo};
-
+	use codec::{FullCodec};
 	use frame_support::{
 		sp_runtime::traits::{AccountIdConversion, Zero},
 		traits::{ExistenceRequirement, Randomness, ReservableCurrency, WithdrawReasons},
@@ -122,7 +123,7 @@ pub mod pallet {
 	#[pallet::getter(fn funds)]
 	/// Info on all of the funds.
 	pub(super) type Funds<T: Config> =
-		StorageMap<_, Blake2_128Concat, FundIndex, FundInfoOf<T>, OptionQuery>;
+		StorageMap<_, Blake2_128Concat, T::FundIdx, FundInfoOf<T>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn fund_count)]
@@ -147,6 +148,8 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type MaxNFTOwned: Get<u32>;
+
+		type FundIdx: FullCodec + Copy + Eq + PartialEq + Debug + TypeInfo + MaxEncodedLen;
 	}
 
 	#[pallet::pallet]
@@ -192,15 +195,15 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		CollectionRegistered(CollectionId),
-		Created(FundIndex, <T as frame_system::Config>::BlockNumber),
+		Created(T::FundIdx, <T as frame_system::Config>::BlockNumber),
 		Contributed(
 			<T as frame_system::Config>::AccountId,
-			FundIndex,
+			T::FundIdx,
 			BalanceOf<T>,
 			<T as frame_system::Config>::BlockNumber,
 		),
 		Dispensed(
-			FundIndex,
+			T::FundIdx,
 			<T as frame_system::Config>::BlockNumber,
 			<T as frame_system::Config>::AccountId,
 		),
@@ -312,14 +315,15 @@ pub mod pallet {
 					nft_vec.try_push(nft_id)
 				}).map_err(|_| <Error<T>>::ExceedMaxNFTOwned)?;
 
-				let _ = Self::contribute(&who.clone(), 0, mint_fee);
+				// TODO: Remove comment
+				// let _ = Self::contribute(&who.clone(), collection_id , mint_fee);
 			} else {
 			}
 			Ok(())
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn dispense_fund(origin: OriginFor<T>, index: FundIndex) -> DispatchResultWithPostInfo {
+		pub fn dispense_fund(origin: OriginFor<T>, index: T::FundIdx) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			let now = <frame_system::Pallet<T>>::block_number();
 			let fund = Self::funds(index).ok_or(Error::<T>::InvalidFundIndex)?;
@@ -374,7 +378,8 @@ pub mod pallet {
 
 			// Create Fund
 			let current_block_number = <frame_system::Pallet<T>>::block_number();
-			Self::create_fund(&owner, collection_id, current_block_number);
+			// TODO: Remove comment
+			// Self::create_fund(&owner, collection_id, current_block_number);
 
 			Ok(collection_id)
 		}
@@ -409,7 +414,7 @@ pub mod pallet {
 			random.as_ref()[0] % 10
 		}
 
-		pub fn fund_account_id(index: FundIndex) -> T::AccountId {
+		pub fn fund_account_id(index: T::FundIdx) -> T::AccountId {
 			PALLET_ID.into_sub_account(index)
 		}
 	}
@@ -418,7 +423,7 @@ pub mod pallet {
 		// CrowdFund
 		pub fn create_fund(
 			owner: &T::AccountId,
-			fund_index: FundIndex,
+			fund_index: T::FundIdx,
 			end: T::BlockNumber,
 		) -> DispatchResultWithPostInfo {
 			let deposit = T::SubmissionDeposit::get();
@@ -450,7 +455,7 @@ pub mod pallet {
 
 		pub fn contribute(
 			contributor: &T::AccountId,
-			index: FundIndex,
+			index: T::FundIdx,
 			value: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let mut fund = Self::funds(index).ok_or(Error::<T>::InvalidFundIndex)?;
@@ -475,7 +480,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		pub fn dispense(index: FundIndex) -> DispatchResultWithPostInfo {
+		pub fn dispense(index: T::FundIdx) -> DispatchResultWithPostInfo {
 			let fund = Self::funds(index).ok_or(Error::<T>::InvalidFundIndex)?;
 			let account = Self::fund_account_id(index);
 			let result = T::Currency::resolve_creating(
@@ -513,16 +518,18 @@ pub mod pallet {
 	}
 
 	pub trait FundInfoInterface<T: frame_system::Config> {
-		fn get_fund_account_id(index: FundIndex) -> T::AccountId;
-		fn dispense(origin: OriginFor<T>, index: FundIndex) -> DispatchResultWithPostInfo;
+		type FundIdx;
+		fn get_fund_account_id(index: Self::FundIdx) -> T::AccountId;
+		fn dispense(origin: OriginFor<T>, index: Self::FundIdx) -> DispatchResultWithPostInfo;
 	}
 
 	impl<T: Config> FundInfoInterface<T> for Pallet<T> {
-		fn get_fund_account_id(index: FundIndex) -> T::AccountId {
+		type FundIdx = T::FundIdx;
+		fn get_fund_account_id(index: Self::FundIdx) -> T::AccountId {
 			Self::fund_account_id(index)
 		}
 
-		fn dispense(origin: OriginFor<T>, index: FundIndex) -> DispatchResultWithPostInfo {
+		fn dispense(origin: OriginFor<T>, index: Self::FundIdx) -> DispatchResultWithPostInfo {
 			Self::dispense_fund(origin, index)
 		}
 	}
