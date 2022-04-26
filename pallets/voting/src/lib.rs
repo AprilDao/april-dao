@@ -16,6 +16,10 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use scale_info::{StaticTypeInfo, TypeInfo};
 	use sp_std::vec::Vec;
+
+	// Local pallet
+	use pallet_collection::FundInfoInterface;
+
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -75,6 +79,9 @@ pub mod pallet {
 			+ Send;
 		// + RuntimeDeserialize;
 		type Timestamp: Time<Moment = Self::Moment>;
+
+		// pallet-collection loose coupling
+		type FundInfoImpl: FundInfoInterface<Self>;
 	}
 
 	// Pallets use events to inform users when important changes are made.
@@ -226,8 +233,8 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(50_000_000)]
-		pub fn execute(origin: OriginFor<T>, proposal_id: T::ProposalId) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
+		pub fn execute(origin: OriginFor<T>, proposal_id: u32) -> DispatchResult {
+			let _ = T::FundInfoImpl::dispense(origin, proposal_id);
 			Ok(())
 		}
 

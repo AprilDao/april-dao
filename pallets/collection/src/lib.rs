@@ -312,7 +312,7 @@ pub mod pallet {
 					nft_vec.try_push(nft_id)
 				}).map_err(|_| <Error<T>>::ExceedMaxNFTOwned)?;
 
-				let _ = Self::contribute(&who.clone(), 0, mint_fee);
+				let _ = Self::contribute(&who.clone(), collection_id, mint_fee);
 			} else {
 			}
 			Ok(())
@@ -509,6 +509,21 @@ pub mod pallet {
 		/// `None` here.
 		fn class_owner(_class: &Self::ClassId) -> Option<T::AccountId> {
 			None
+		}
+	}
+
+	pub trait FundInfoInterface<T: frame_system::Config> {
+		fn get_fund_account_id(index: FundIndex) -> T::AccountId;
+		fn dispense(origin: OriginFor<T>, index: FundIndex) -> DispatchResultWithPostInfo;
+	}
+
+	impl<T: Config> FundInfoInterface<T> for Pallet<T> {
+		fn get_fund_account_id(index: FundIndex) -> T::AccountId {
+			Self::fund_account_id(index)
+		}
+
+		fn dispense(origin: OriginFor<T>, index: FundIndex) -> DispatchResultWithPostInfo {
+			Self::dispense_fund(origin, index)
 		}
 	}
 }

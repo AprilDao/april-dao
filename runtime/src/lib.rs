@@ -337,6 +337,7 @@ impl pallet_voting::Config for Runtime {
 	type Balance = Balance;
 	type Moment = u64;
 	type Timestamp = Timestamp;
+	type FundInfoImpl = CollectionModule;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
