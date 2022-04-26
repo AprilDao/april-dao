@@ -312,7 +312,7 @@ pub mod pallet {
 					nft_vec.try_push(nft_id)
 				}).map_err(|_| <Error<T>>::ExceedMaxNFTOwned)?;
 
-				let _ = Self::contribute(&who.clone(), 0, mint_fee);
+				let _ = Self::contribute(&who.clone(), collection_id, mint_fee);
 			} else {
 			}
 			Ok(())

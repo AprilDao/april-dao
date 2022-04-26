@@ -233,8 +233,8 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(50_000_000)]
-		pub fn execute(origin: OriginFor<T>, proposal_id: T::ProposalId) -> DispatchResult {
-			let _ = T::FundInfoImpl::dispense(origin, 0);
+		pub fn execute(origin: OriginFor<T>, proposal_id: u32) -> DispatchResult {
+			let _ = T::FundInfoImpl::dispense(origin, proposal_id);
 			Ok(())
 		}
 
