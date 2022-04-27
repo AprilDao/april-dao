@@ -146,18 +146,22 @@ pub mod pallet {
 			asset_id: T::AssetId,
 			amount_withdraw: T::Balance,
 			wallet_address: T::AccountId,
+			title: Vec<u8>,
 			description: Vec<u8>,
 			expired_at: T::Moment,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			let bounded_description: BoundedVec<u8, T::MaxStringLength> =
 				description.try_into().map_err(|()| Error::<T>::TooLong)?;
+			let bounded_title: BoundedVec<u8, T::MaxStringLength> =
+				title.try_into().map_err(|()| Error::<T>::TooLong)?;
 			match <Proposals<T>>::get(&proposal_id) {
 				Some(_) => Err(Error::<T>::ProposalAlreadyExists)?,
 				None => {},
 			}
 			let proposal = Proposal::<T> {
 				proposer: sender.clone(),
+				title: bounded_title,
 				description: bounded_description,
 				wallet_address,
 				asset_id,
@@ -260,6 +264,7 @@ pub mod pallet {
 	pub struct Proposal<T: Config> {
 		pub proposer: T::AccountId,
 		pub amount_withdraw: T::Balance,
+		pub title: BoundedVec<u8, T::MaxStringLength>,
 		pub description: BoundedVec<u8, T::MaxStringLength>,
 		pub wallet_address: T::AccountId,
 		pub asset_id: T::AssetId,
