@@ -45,6 +45,8 @@ use pallet_transaction_payment::CurrencyAdapter;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
+use sp_arithmetic::per_things::Percent;
+
 /// Import the april dao pallet.
 pub use pallet_april_dao;
 pub use pallet_collection;
@@ -321,6 +323,7 @@ parameter_types! {
 	pub const MaxProposal: u32 = 999999;
 	pub const MaxVoter: u32 = 999999;
 	pub const MaxStringLength: u32 = 256;
+	pub const AgreementPercenagethresHold: Percent = Percent::from_percent(50);
 }
 
 impl pallet_voting::Config for Runtime {
@@ -333,11 +336,13 @@ impl pallet_voting::Config for Runtime {
 	type MaxProposal = MaxProposal;
 	type MaxVoter = MaxVoter;
 	type MaxStringLength = MaxStringLength;
+	type AgreementPercenagethresHold = AgreementPercenagethresHold;
 	type ProposalId = u64;
 	type Balance = Balance;
 	type Moment = u64;
 	type Timestamp = Timestamp;
 	type FundInfoImpl = CollectionModule;
+	
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

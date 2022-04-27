@@ -217,6 +217,8 @@ pub mod pallet {
 		CollectionExists,
 		/// Collection not exists
 		CollectionNotExists,
+		// Collection is in draft state
+		CollectionIsInDraftState,
 		// Fund index is not existed
 		InvalidFundIndex,
 
@@ -288,7 +290,7 @@ pub mod pallet {
 				Self::get_collections(&collection_id).ok_or(<Error<T>>::CollectionNotExists)?;
 
 			// Ensure collection is approved
-			ensure!(collection.project_status == ProjectStatus::Approved, Error::<T>::NotFundOwner);
+			ensure!(collection.project_status == ProjectStatus::Approved, Error::<T>::CollectionIsInDraftState);
 
 			if collection.number_of_minted < collection.number_of_items {
 				let mint_fee = collection.mint_fee;
@@ -319,14 +321,14 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn dispense_fund(origin: OriginFor<T>, index: FundIndex) -> DispatchResultWithPostInfo {
+		pub fn dispense_fund(origin: OriginFor<T>, index: FundIndex, beneficiary: T::AccountId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			let now = <frame_system::Pallet<T>>::block_number();
 			let fund = Self::funds(index).ok_or(Error::<T>::InvalidFundIndex)?;
 
 			ensure!(who == fund.beneficiary, Error::<T>::NotFundOwner);
 
-			Self::dispense(index);
+			Self::dispense(index, beneficiary);
 
 			Self::deposit_event(Event::Dispensed(index, now, who));
 
@@ -475,11 +477,11 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		pub fn dispense(index: FundIndex) -> DispatchResultWithPostInfo {
+		pub fn dispense(index: FundIndex, beneficiary: T::AccountId) -> DispatchResultWithPostInfo {
 			let fund = Self::funds(index).ok_or(Error::<T>::InvalidFundIndex)?;
 			let account = Self::fund_account_id(index);
 			let result = T::Currency::resolve_creating(
-				&fund.beneficiary,
+				&beneficiary,
 				T::Currency::withdraw(
 					&account,
 					fund.raised,
@@ -514,7 +516,7 @@ pub mod pallet {
 
 	pub trait FundInfoInterface<T: frame_system::Config> {
 		fn get_fund_account_id(index: FundIndex) -> T::AccountId;
-		fn dispense(origin: OriginFor<T>, index: FundIndex) -> DispatchResultWithPostInfo;
+		fn dispense(origin: OriginFor<T>, index: FundIndex, beneficiary: T::AccountId) -> DispatchResultWithPostInfo;
 	}
 
 	impl<T: Config> FundInfoInterface<T> for Pallet<T> {
@@ -522,8 +524,8 @@ pub mod pallet {
 			Self::fund_account_id(index)
 		}
 
-		fn dispense(origin: OriginFor<T>, index: FundIndex) -> DispatchResultWithPostInfo {
-			Self::dispense_fund(origin, index)
+		fn dispense(origin: OriginFor<T>, index: FundIndex, beneficiary: T::AccountId) -> DispatchResultWithPostInfo {
+			Self::dispense_fund(origin, index, beneficiary)
 		}
 	}
 }

@@ -16,6 +16,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use scale_info::{StaticTypeInfo, TypeInfo};
 	use sp_std::vec::Vec;
+	use sp_arithmetic::per_things::Percent;
 
 	// Local pallet
 	use pallet_collection::FundInfoInterface;
@@ -59,6 +60,8 @@ pub mod pallet {
 		type MaxVoter: Get<u32>;
 		#[pallet::constant]
 		type MaxStringLength: Get<u32>;
+		#[pallet::constant]
+		type AgreementPercenagethresHold: Get<Percent>;
 		type ProposalId: FullCodec + Copy + Eq + PartialEq + Debug + TypeInfo + MaxEncodedLen;
 		type Balance: Parameter
 			+ Member
@@ -105,6 +108,9 @@ pub mod pallet {
 		NFTNotAvailable,
 		NFTIsNotExist,
 		NFTAlreadyBindedToAnotherAsset,
+		CollectionNotExists,
+		ProposalNotExists,
+		HaveNotPassTheThresHold,
 	}
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -126,6 +132,11 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, T::ProposalId, Proposal<T>, OptionQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn get_proposal_collections)]
+	pub(super) type ProposalCollections<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::ProposalId, u32, OptionQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn get_votes)]
 	pub(super) type Votes<T: Config> = StorageMap<
 		_,
@@ -143,6 +154,7 @@ pub mod pallet {
 		pub fn create_proposal(
 			origin: OriginFor<T>,
 			proposal_id: T::ProposalId,
+			collection_id: u32,
 			asset_id: T::AssetId,
 			amount_withdraw: T::Balance,
 			wallet_address: T::AccountId,
@@ -155,6 +167,7 @@ pub mod pallet {
 				description.try_into().map_err(|()| Error::<T>::TooLong)?;
 			let bounded_title: BoundedVec<u8, T::MaxStringLength> =
 				title.try_into().map_err(|()| Error::<T>::TooLong)?;
+
 			match <Proposals<T>>::get(&proposal_id) {
 				Some(_) => Err(Error::<T>::ProposalAlreadyExists)?,
 				None => {},
@@ -170,6 +183,7 @@ pub mod pallet {
 			};
 
 			<Proposals<T>>::insert(&proposal_id, &proposal);
+			<ProposalCollections<T>>::insert(&proposal_id, collection_id);
 			match <ProposalIds<T>>::get() {
 				Some(proposal_ids) => {
 					let mut vec_ids = proposal_ids.to_vec();
@@ -208,28 +222,24 @@ pub mod pallet {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			if let Some(proposal) = <Proposals<T>>::get(&proposal_id) {
-				if nft_class == <AvailableVotingNFT<T>>::get(&proposal.asset_id).unwrap() {
-					if sender == T::NFT::owner(&nft_class, &nft_instance).unwrap() {
-						let votes = <Votes<T>>::get(&proposal_id).unwrap();
-						let mut vec_votes = votes.to_vec();
-						let vote = Vote { voter: sender.clone(), nft: nft_instance, is_accepted };
-						vec_votes.push(vote);
-						let votes: BoundedVec<Vote<T>, T::MaxVoter> =
-							vec_votes.try_into().map_err(|()| Error::<T>::TooLong)?;
-						<Votes<T>>::insert(&proposal_id, votes);
-						Self::deposit_event(Event::Voted(
-							sender,
-							proposal_id,
-							nft_class,
-							nft_instance,
-							is_accepted,
-						));
-						Ok(())
-					} else {
-						Err(Error::<T>::VoterIsNotNFTOwner)?
-					}
+				if sender == T::NFT::owner(&nft_class, &nft_instance).unwrap() {
+					let votes = <Votes<T>>::get(&proposal_id).unwrap();
+					let mut vec_votes = votes.to_vec();
+					let vote = Vote { voter: sender.clone(), nft: nft_instance, is_accepted };
+					vec_votes.push(vote);
+					let votes: BoundedVec<Vote<T>, T::MaxVoter> =
+						vec_votes.try_into().map_err(|()| Error::<T>::TooLong)?;
+					<Votes<T>>::insert(&proposal_id, votes);
+					Self::deposit_event(Event::Voted(
+						sender,
+						proposal_id,
+						nft_class,
+						nft_instance,
+						is_accepted,
+					));
+					Ok(())
 				} else {
-					Err(Error::<T>::NFTNotAvailable)?
+					Err(Error::<T>::VoterIsNotNFTOwner)?
 				}
 			} else {
 				Err(Error::<T>::ProposalNotFound)?
@@ -237,9 +247,18 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(50_000_000)]
-		pub fn execute(origin: OriginFor<T>, proposal_id: u32) -> DispatchResult {
-			let _ = T::FundInfoImpl::dispense(origin, proposal_id);
-			Ok(())
+		pub fn execute(origin: OriginFor<T>, proposal_id: T::ProposalId) -> DispatchResult {
+			let collection_id = <ProposalCollections<T>>::get(&proposal_id).ok_or(<Error<T>>::CollectionNotExists)?;
+			let proposal = <Proposals<T>>::get(&proposal_id).ok_or(<Error<T>>::ProposalNotExists)?;
+			let beneficiary = proposal.wallet_address;
+			// Assure the acceptance percentage is greater than the threshold
+			let result = Self::assure_proposal_is_accepted(proposal_id);
+			if result.is_err() {
+				result
+			} else {
+				let _ = T::FundInfoImpl::dispense(origin, collection_id, beneficiary);
+				Ok(())
+			}		
 		}
 
 		#[pallet::weight(50_000_000)]
@@ -259,6 +278,23 @@ pub mod pallet {
 		}
 	}
 
+	impl<T: Config> Pallet<T> {
+		fn assure_proposal_is_accepted(proposal_id: T::ProposalId) -> DispatchResult {
+			// Acceptance percentage
+			let votes = <Votes<T>>::get(&proposal_id).unwrap();
+			let accepted_count = votes.iter().filter(|x| x.is_accepted).count();
+			let total_votes = votes.iter().size_hint().0;
+
+			let threshold = T::AgreementPercenagethresHold::get();
+			let p = Percent::from_rational(accepted_count, total_votes);
+			if p <= threshold {
+				Err(Error::<T>::HaveNotPassTheThresHold)?
+			} else {
+				Ok(())
+			}
+		}
+
+	}
 	#[derive(Clone, Encode, Decode, PartialEq, Debug, TypeInfo)]
 	#[scale_info(skip_type_params(T))]
 	pub struct Proposal<T: Config> {
